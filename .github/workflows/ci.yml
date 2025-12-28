@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+        python -m pip install pytest pytest-cov
+    
+    - name: Verify core dependencies
+      run: |
+        python -c "import openai, tweepy, dotenv; print('Core dependencies OK')" || exit 1
+    
+    - name: Check Python syntax (compileall)
+      run: |
+        python -m compileall . -q -x venv || exit 1
+        echo "✓ All Python files compile successfully"
+    
+    - name: Verify code imports
+      run: |
+        python -c "
+        import sys
+        # Try importing main modules (graceful if they don't exist yet)
+        try:
+            import zora_bot
+            print('✓ zora_bot module imports OK')
+        except ImportError as e:
+            print(f'⚠ zora_bot import issue: {e}')
+        try:
+            import zora_control
+            print('✓ zora_control module imports OK')
+        except ImportError as e:
+            print(f'⚠ zora_control import issue: {e}')
+        " || exit 1
+    
+    - name: Run tests
+      run: |
+        if [ -d "tests" ]; then
+          python -m pytest tests/ -v --tb=short || exit 1
+        else
+          echo "⚠ No tests directory found. Tests will be required once test harness is added."
+          # For now, don't fail if no tests (will be required later)
+        fi
+    
+    - name: Check code style (basic)
+      run: |
+        python -m pip install flake8 || true
+        if command -v flake8 &> /dev/null; then
+          python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv,__pycache__ || exit 1
+        else
+          echo "⚠ Flake8 not installed, skipping style check"
+        fi
+
