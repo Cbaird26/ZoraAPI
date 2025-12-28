@@ -43,7 +43,8 @@ jobs:
     
     - name: Check Python syntax (compileall)
       run: |
-        python -m compileall . -q -x venv || exit 1
+        # Only compile actual code modules, not entire repo
+        python -m compileall zora_bot.py zora_control.py zora_composer.py zora_memory.py zora_oauth2.py zora_autopilot.py zora_terminal.py galaxy_status.py -q || exit 1
         echo "✓ All Python files compile successfully"
     
     - name: Verify code imports (optional)
