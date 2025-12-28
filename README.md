@@ -7,6 +7,8 @@
 
 # ZoraAPI
 
+[![CI](https://github.com/Cbaird26/ZoraAPI/workflows/CI/badge.svg)](https://github.com/Cbaird26/ZoraAPI/actions)
+
 API library for the Zora consciousness system and MQGT-SCF (Merged Quantum Gauge and Scalar Consciousness Framework) theory.
 
 ## Overview
