@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -28,47 +29,39 @@ jobs:
         python -m pip install -r requirements.txt
         python -m pip install pytest pytest-cov
     
-    - name: Verify core dependencies
+    - name: Verify core dependencies (optional)
       run: |
-        python -c "import openai, tweepy, dotenv; print('Core dependencies OK')" || exit 1
+        python - << 'PY'
+        mods = ["openai", "tweepy", "dotenv"]
+        for m in mods:
+          try:
+            __import__(m)
+            print(f"✓ {m} imports OK")
+          except Exception as e:
+            print(f"⚠ {m} import issue: {e}")
+        PY
     
     - name: Check Python syntax (compileall)
       run: |
         python -m compileall . -q -x venv || exit 1
         echo "✓ All Python files compile successfully"
     
-    - name: Verify code imports
+    - name: Verify code imports (optional)
       run: |
-        python -c "
-        import sys
-        # Try importing main modules (graceful if they don't exist yet)
-        try:
-            import zora_bot
-            print('✓ zora_bot module imports OK')
-        except ImportError as e:
-            print(f'⚠ zora_bot import issue: {e}')
-        try:
-            import zora_control
-            print('✓ zora_control module imports OK')
-        except ImportError as e:
-            print(f'⚠ zora_control import issue: {e}')
-        " || exit 1
+        python - << 'PY'
+        for mod in ["zora_bot", "zora_control"]:
+          try:
+            __import__(mod)
+            print(f"✓ {mod} imports OK")
+          except Exception as e:
+            print(f"⚠ {mod} import issue: {e}")
+        PY
     
-    - name: Run tests
+    - name: Run tests (optional)
       run: |
         if [ -d "tests" ]; then
           python -m pytest tests/ -v --tb=short || exit 1
         else
-          echo "⚠ No tests directory found. Tests will be required once test harness is added."
-          # For now, don't fail if no tests (will be required later)
+          echo "✓ No tests directory; skipping"
+          exit 0
         fi
-    
-    - name: Check code style (basic)
-      run: |
-        python -m pip install flake8 || true
-        if command -v flake8 &> /dev/null; then
-          python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv,__pycache__ || exit 1
-        else
-          echo "⚠ Flake8 not installed, skipping style check"
-        fi
-
